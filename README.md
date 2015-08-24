@@ -1,1 +1,1 @@
-# ce_task_demo
+# CE Tasks Demo
