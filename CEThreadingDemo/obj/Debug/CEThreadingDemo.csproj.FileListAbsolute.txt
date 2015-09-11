@@ -1,3 +1,7 @@
 \\btbus02\Share\usr\kbogner\code\misc\ce\CEThreadingDemo\CEThreadingDemo\bin\Debug\CEThreadingDemo.exe.config
 C:\Users\kbogner\Desktop\ce\CEThreadingDemo\CEThreadingDemo\bin\Debug\CEThreadingDemo.exe.config
 C:\Users\kbogner\Desktop\ce\CEThreadingDemo\CEThreadingDemo\obj\Debug\CEThreadingDemo.csprojResolveAssemblyReference.cache
+C:\Users\kbogner\Desktop\ce\CEThreadingDemo\CEThreadingDemo\bin\Debug\CEThreadingDemo.exe
+C:\Users\kbogner\Desktop\ce\CEThreadingDemo\CEThreadingDemo\bin\Debug\CEThreadingDemo.pdb
+C:\Users\kbogner\Desktop\ce\CEThreadingDemo\CEThreadingDemo\obj\Debug\CEThreadingDemo.exe
+C:\Users\kbogner\Desktop\ce\CEThreadingDemo\CEThreadingDemo\obj\Debug\CEThreadingDemo.pdb

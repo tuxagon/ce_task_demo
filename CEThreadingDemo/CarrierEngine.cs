@@ -5,6 +5,23 @@ using System.Threading.Tasks;
 
 namespace CEThreadingDemo
 {
+    public static class Logger
+    {
+        private static object _lock = new object();
+        public static void Log(string message)
+        {
+            lock (_lock)
+            {
+                using (System.IO.StreamWriter sw = new System.IO.StreamWriter(@"C:\Testing_Directory\logs\ced.log", true))
+                {
+                    sw.WriteLine(message);
+                }
+            }
+
+            Console.WriteLine(message);
+        }
+    }
+
     public class Quote
     {
         public int Id { get; set; }
@@ -13,7 +30,7 @@ namespace CEThreadingDemo
 
         public Quote()
         {
-            this.Carrier = new Carrier();
+
         }
     }
 
@@ -29,7 +46,7 @@ namespace CEThreadingDemo
 
         public void Resolve()
         {
-            Console.WriteLine("Resolved quote " + Quote.Id);
+            Logger.Log("Resolved quote " + quote_.Id);
         }
     }
 
@@ -40,20 +57,27 @@ namespace CEThreadingDemo
 
         public Carrier(string name = "")
         {
+            Logger.Log("Adding carrier \"" + name + "\"");
             CarrierName = name;
         }
 
         public List<Quote> GetQuotes()
         {
-            return new List<Quote>
+            Random r = new Random();
+            int qn = r.Next(1, 5);
+            List<Quote> quotes = new List<Quote>();
+            while (qn > 0)
             {
-                new Quote
+                quotes.Add(new Quote
                 {
                     Id = quoteNum_++,
                     Carrier = this,
-                    Price = 3.45M
-                }
-            };
+                    Price = Convert.ToDecimal(r.NextDouble() * 100)
+                });
+                qn--;
+            }
+            Logger.Log("Carrier brought back " + quotes.Count + " quotes");
+            return quotes;
         }
     }
 
@@ -81,12 +105,12 @@ namespace CEThreadingDemo
 
         public void ValidateForRating()
         {
-            Console.WriteLine("Validated");
+            Logger.Log("Validated");
         }
 
         public void FilterAccounts()
         {
-            Console.WriteLine("Filtered Accounts");
+            Logger.Log("Accounts filtered");
         }
 
         public void RateCarriers()
@@ -94,85 +118,40 @@ namespace CEThreadingDemo
             try
             {
                 object _lock = new object();
-                int iter = 0;
-                int tc = 10;
-                int total = 10;
-                int remaining = total;
 
-                StartQuoteQueue(remaining);
+                StartQuoteQueue(this.Accounts.Count);
 
-                Console.WriteLine("Starting rating");
-                Timer t = new Timer((o) =>
-                {
-                    Console.WriteLine("Starting burst " + iter);
-                    List<Task> tasks = new List<Task>();
-                    for (int i = tc * iter; i < total && i < (tc * (iter + 1)); i++)
-                    {
-                        Console.WriteLine("Starting rating for Carrier " + i);
-                        tasks.Add(Task.Factory.StartNew((state) =>
+                Logger.Log("Rating...");
+                Parallel.ForEach(
+                    this.Accounts, 
+                    new ParallelOptions { MaxDegreeOfParallelism = 10 }, 
+                    (o) => {
+                        Logger.Log("Starting account " + o.AccountID);
+                        Carrier c = new Carrier("Carrier for account " + o.AccountID);
+                        List<Quote> qs = c.GetQuotes();
+                        foreach (Quote q in qs)
                         {
-                            try
-                            {
-                                Carrier c = new Carrier(state.ToString());
-                                Console.WriteLine("Getting quote for " + c.CarrierName);
-                                List<Quote> qs = c.GetQuotes();
-                                foreach (Quote q in qs)
-                                {
-                                    Console.WriteLine("Adding quote to queue");
-                                    quoteQueue_.Enqueue(new QuoteNotification(q));
-                                }
-                            }
+                            Logger.Log("Adding quote to queue " + q.Id + " : { " + q.Carrier.CarrierName + ", " + q.Price + " }");
+                            quoteQueue_.Enqueue(new QuoteNotification(q));
+                        }
+                    });
 
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine("An in task exception occurred");
-                            }
+                //doneEvent_.Wait();
+                Logger.Log("Rated");
 
-                            finally
-                            {
-                                lock (_lock)
-                                {
-                                    --remaining;
-                                }
-                            }
-                        }, "Carrier " + i));
-                    }
-                    Console.WriteLine("Started all for burst " + iter);
-                    ++iter;
-
-                    try
-                    {
-                        Task.WaitAll(tasks.ToArray());
-                    }
-                    catch (AggregateException ex)
-                    {
-                        ex.Handle((x) =>
-                        {
-                            Console.Write("An aggregate exception occurred");
-                            return true;
-                        });
-                    }
-
-                    Console.WriteLine("burst complete");
-
-                }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
-
-                doneEvent_.Wait();
-                t.Dispose();
-
-                Console.WriteLine("threading complete\nPress enter/return to finish");
+                Logger.Log("Done");
                 Console.ReadLine();
             }
 
             catch (Exception ex)
             {
-                Console.WriteLine("An error occurred");
+                Logger.Log("ERROR ERROR ERROR : Something went wrong with rating");
             }
         }
 
         private void StartQuoteQueue(int remaining)
         {
-            Console.WriteLine("Starting Quote Thread");
+            Logger.Log("Starting quote thread");
             Task.Factory.StartNew((state) =>
             {
                 try
@@ -182,28 +161,33 @@ namespace CEThreadingDemo
                     {
                         if (quoteQueue_.Count > 0)
                         {
-                            Console.WriteLine("Resolving quote");
                             QuoteNotification qn = quoteQueue_.Dequeue();
+                            Logger.Log("Resolving quote " + qn.Quote.Id);
                             qn.Resolve();
                             r--;
-                            Console.WriteLine("Quote resolved");
                         }
                     }
-                    Console.WriteLine("Rating done");
+                    Logger.Log("Quotes handled");
                     doneEvent_.Set();
                 }
 
                 catch (Exception ex)
                 {
-                    Console.WriteLine("An in task exception occurred");
+                    Logger.Log("ERROR ERROR ERROR : Something went wrong with quote queue");
                 }
             }, remaining);
-            Console.WriteLine("Quote Thread Started");
+            Logger.Log("Quote thread started");
         }
 
         private void LoadData()
         {
-            Console.WriteLine("Data retrieved");
+            Logger.Log("Loading Accounts");
+            for (int i = 0; i < 10; i++)
+            {
+                this.Accounts.Add(new Account { AccountID = i.ToString() });
+                //Logger.Log("Adding account ID : " + this.Accounts[i].AccountID);
+            }
+            Logger.Log("Accounts Loaded");
         }
     }
 
