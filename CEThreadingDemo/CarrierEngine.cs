@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -100,7 +102,6 @@ namespace CEThreadingDemo
             this.Load = new Load();
             this.quoteQueue_ = new Queue<QuoteNotification>();
             this.doneEvent_ = new ManualResetEventSlim(false);
-            LoadData();
         }
 
         public void ValidateForRating()
@@ -108,8 +109,15 @@ namespace CEThreadingDemo
             Logger.Log("Validated");
         }
 
-        public void FilterAccounts()
+        public void FilterAccounts(Expression<Func<Account, bool>> filter = null)
         {
+            IQueryable<Account> query = this.Accounts.AsQueryable();
+
+            if (filter != null)
+            {
+                this.Accounts = query.Where(filter).ToList();
+            }
+
             Logger.Log("Accounts filtered");
         }
 
@@ -179,10 +187,10 @@ namespace CEThreadingDemo
             Logger.Log("Quote thread started");
         }
 
-        private void LoadData()
+        public void LoadData()
         {
             Logger.Log("Loading Accounts");
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 100; i++)
             {
                 this.Accounts.Add(new Account { AccountID = i.ToString() });
                 //Logger.Log("Adding account ID : " + this.Accounts[i].AccountID);

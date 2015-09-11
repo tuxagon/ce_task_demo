@@ -7,9 +7,18 @@ namespace CEThreadingDemo
     {
         static void Main(string[] args)
         {
-            CarrierEngine ce = new CarrierEngine();
-            ce.ValidateForRating();
-            ce.RateCarriers();
+            try
+            {
+                CarrierEngine ce = new CarrierEngine();
+                ce.LoadData();
+                ce.ValidateForRating();
+                ce.FilterAccounts(a => a.AccountID == "1");
+                ce.RateCarriers();
+            }
+            catch (Exception e)
+            {
+
+            }
         }
     }
 }
