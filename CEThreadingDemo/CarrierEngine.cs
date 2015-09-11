@@ -95,6 +95,7 @@ namespace CEThreadingDemo
 
         private Queue<QuoteNotification> quoteQueue_;
         private ManualResetEventSlim doneEvent_;
+        private bool doneRating_;
 
         public CarrierEngine()
         {
@@ -127,7 +128,8 @@ namespace CEThreadingDemo
             {
                 object _lock = new object();
 
-                StartQuoteQueue(this.Accounts.Count);
+                doneRating_ = false;
+                StartQuoteQueue();
 
                 Logger.Log("Rating...");
                 Parallel.ForEach(
@@ -144,8 +146,8 @@ namespace CEThreadingDemo
                         }
                     });
 
-                //doneEvent_.Wait();
                 Logger.Log("Rated");
+                doneRating_ = true;
 
                 Logger.Log("Done");
                 Console.ReadLine();
@@ -157,33 +159,34 @@ namespace CEThreadingDemo
             }
         }
 
-        private void StartQuoteQueue(int remaining)
+        private void StartQuoteQueue()
         {
             Logger.Log("Starting quote thread");
-            Task.Factory.StartNew((state) =>
+            Task.Factory.StartNew(() =>
             {
                 try
                 {
-                    int r = (int)state;
-                    while(r > 0)
+                    while(true)
                     {
                         if (quoteQueue_.Count > 0)
                         {
                             QuoteNotification qn = quoteQueue_.Dequeue();
                             Logger.Log("Resolving quote " + qn.Quote.Id);
                             qn.Resolve();
-                            r--;
+                        }
+                        else if (doneRating_)
+                        {
+                            break;
                         }
                     }
                     Logger.Log("Quotes handled");
-                    doneEvent_.Set();
                 }
 
                 catch (Exception ex)
                 {
                     Logger.Log("ERROR ERROR ERROR : Something went wrong with quote queue");
                 }
-            }, remaining);
+            });
             Logger.Log("Quote thread started");
         }
 
